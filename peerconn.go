@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -1141,11 +1143,20 @@ func (c *PeerConn) tickleWriter() {
 func (c *PeerConn) sendChunk(r Request, msg func(pp.Message) bool, state *peerRequestState) (more bool) {
 	c.lastChunkSent = time.Now()
 	state.allocReservation.Release()
+	// Prefix the piece data with a 16 byte hex header containing the piece
+	// index and chunk offset. This is for a custom protocol and will break
+	// interoperability with standard BitTorrent peers.
+	var raw [8]byte
+	binary.BigEndian.PutUint32(raw[:4], uint32(r.Index))
+	binary.BigEndian.PutUint32(raw[4:], uint32(r.Begin))
+	var header [16]byte
+	hex.Encode(header[:], raw[:])
+	data := append(header[:], state.data...)
 	return msg(pp.Message{
 		Type:  pp.Piece,
 		Index: r.Index,
 		Begin: r.Begin,
-		Piece: state.data,
+		Piece: data,
 	})
 }
 
