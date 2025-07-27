@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -1141,11 +1143,22 @@ func (c *PeerConn) tickleWriter() {
 func (c *PeerConn) sendChunk(r Request, msg func(pp.Message) bool, state *peerRequestState) (more bool) {
 	c.lastChunkSent = time.Now()
 	state.allocReservation.Release()
+	data := state.data
+	if c.t != nil && c.t.cl != nil && c.t.cl.config.SendHexPieceHeader {
+		// Prefix the piece data with a 16 byte hex header containing the piece
+		// index and chunk offset for a private protocol extension.
+		var raw [8]byte
+		binary.BigEndian.PutUint32(raw[:4], uint32(r.Index))
+		binary.BigEndian.PutUint32(raw[4:], uint32(r.Begin))
+		var header [16]byte
+		hex.Encode(header[:], raw[:])
+		data = append(header[:], data...)
+	}
 	return msg(pp.Message{
 		Type:  pp.Piece,
 		Index: r.Index,
 		Begin: r.Begin,
-		Piece: state.data,
+		Piece: data,
 	})
 }
 
