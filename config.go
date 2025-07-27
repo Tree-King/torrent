@@ -83,6 +83,10 @@ type ClientConfig struct {
 	// Maximum unverified bytes across all torrents. Not used if zero.
 	MaxUnverifiedBytes int64
 
+	// If true, send piece data with a custom 16-byte hexadecimal header.
+	// This breaks compatibility with standard BitTorrent peers.
+	SendHexPieceHeader bool
+
 	// User-provided Client peer ID. If not present, one is generated automatically.
 	PeerID string
 	// For the bittorrent protocol.
@@ -246,6 +250,7 @@ func NewDefaultClientConfig() *ClientConfig {
 		MaxUnverifiedBytes:     64 << 20,
 		DialRateLimiter:        rate.NewLimiter(10, 10),
 		PieceHashersPerTorrent: 2,
+		SendHexPieceHeader:     false,
 	}
 	cc.DhtStartingNodes = func(network string) dht.StartingNodesGetter {
 		return func() ([]dht.Addr, error) { return dht.GlobalBootstrapAddrs(network) }

@@ -13,6 +13,7 @@ import (
 // containing the piece index and offset.
 func TestSendChunkHexHeader(t *testing.T) {
 	c := &PeerConn{}
+	c.t = &Torrent{cl: &Client{config: &ClientConfig{SendHexPieceHeader: true}}}
 	l := alloclim.Limiter{Max: 1}
 	state := &peerRequestState{data: []byte{1, 2, 3}, allocReservation: l.Reserve(1)}
 	r := Request{Index: 5, ChunkSpec: ChunkSpec{Begin: 7, Length: 3}}
